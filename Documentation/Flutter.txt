@@ -1,0 +1,496 @@
+# Cursor AI Flutter Project Structure Guidelines
+
+## Strategic Thinking Framework
+
+Before generating any code, follow this thought process:
+
+1. **Feature Context Analysis**
+   - What feature/component of the app is being built?
+   - Where does it fit in the overall user journey?
+   - What other features will interact with it?
+   - What data will it need to access or modify?
+
+2. **Architectural Impact Assessment**
+   - Which layers of the application will be affected?
+     * UI Layer (presentation)
+     * Business Logic Layer (domain)
+     * Data Layer (repositories, services)
+   - What existing patterns should be followed?
+   - What new patterns might need to be introduced?
+
+3. **State Management Decisions**
+   - Does this feature need local or global state?
+   - What type of state management is appropriate?
+     * Bloc for complex business logic
+     * Provider for simple state
+     * GetX for rapid development
+     * Riverpod for dependency injection
+   - How will state changes affect other parts of the app?
+
+4. **Dependency Chain Planning**
+   - What external dependencies will be needed?
+   - How will these dependencies be injected?
+   - What interfaces need to be defined?
+   - How will testing be affected by these dependencies?
+
+5. **Code Generation Strategy**
+   - Start with domain layer (entities, interfaces)
+   - Move to data layer (implementations)
+   - Finally, build presentation layer (UI, state management)
+   - Generate tests alongside each component
+
+Remember: Always generate code in order of dependency (inner layers first, outer layers last)
+
+## Core Architecture Principles
+
+1. **Clean Architecture**: Maintain separation between UI, Business Logic, and Data layers
+2. **Feature-First Organization**: Group code by features rather than types
+3. **Dependency Direction**: Dependencies should point inward (UI → Business Logic → Data)
+4. **Widget Isolation**: Keep widgets focused and independent
+
+## Project Structure
+
+```
+lib/
+├── core/
+│   ├── constants/
+│   │   ├── app_constants.dart
+│   │   └── theme_constants.dart
+│   ├── errors/
+│   │   └── exceptions.dart
+│   ├── network/
+│   │   └── api_client.dart
+│   └── utils/
+│       ├── date_utils.dart
+│       └── validators.dart
+├── features/
+│   ├── auth/
+│   │   ├── data/
+│   │   │   ├── models/
+│   │   │   │   └── user_model.dart
+│   │   │   ├── repositories/
+│   │   │   │   └── auth_repository.dart
+│   │   │   └── datasources/
+│   │   │       └── auth_remote_datasource.dart
+│   │   ├── domain/
+│   │   │   ├── entities/
+│   │   │   │   └── user.dart
+│   │   │   ├── repositories/
+│   │   │   │   └── i_auth_repository.dart
+│   │   │   └── usecases/
+│   │   │       ├── login_usecase.dart
+│   │   │       └── register_usecase.dart
+│   │   └── presentation/
+│   │       ├── bloc/
+│   │       │   ├── auth_bloc.dart
+│   │       │   ├── auth_event.dart
+│   │       │   └── auth_state.dart
+│   │       ├── pages/
+│   │       │   ├── login_page.dart
+│   │       │   └── register_page.dart
+│   │       └── widgets/
+│   │           ├── login_form.dart
+│   │           └── social_login_buttons.dart
+│   └── home/
+├── shared/
+│   ├── widgets/
+│   │   ├── custom_button.dart
+│   │   └── loading_indicator.dart
+│   └── services/
+│       └── local_storage.dart
+└── app.dart
+```
+
+## Code Organization Guidelines
+
+### 1. Feature Organization
+
+Each feature should follow this structure:
+
+```dart
+// DONT:
+// massive_feature_file.dart
+class FeatureWidget extends StatelessWidget {
+  // UI code
+  // Business logic
+  // API calls
+  // State management
+  // Helper methods
+}
+
+// DO:
+// features/feature_name/
+// ├── data/
+// │   └── feature_repository.dart
+// ├── domain/
+// │   └── feature_usecase.dart
+// └── presentation/
+    ├── bloc/
+    │   └── feature_bloc.dart
+    ├── pages/
+    │   └── feature_page.dart
+    └── widgets/
+        └── feature_specific_widget.dart
+```
+
+### 2. Widget Creation
+
+```dart
+// DONT:
+// home_page.dart
+class HomePage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // Complex header widget here
+        // Complex list widget here
+        // Complex footer widget here
+      ],
+    );
+  }
+}
+
+// DO:
+// features/home/presentation/
+// ├── pages/
+// │   └── home_page.dart
+// └── widgets/
+    ├── home_header.dart
+    ├── home_list.dart
+    └── home_footer.dart
+```
+
+### 3. State Management
+
+```dart
+// DONT:
+// single_file_bloc.dart
+class MyBloc extends Cubit<MyState> {
+  final repository = MyRepository();
+  final apiClient = ApiClient();
+  final storage = LocalStorage();
+  // All business logic here
+}
+
+// DO:
+// features/feature/
+// ├── domain/
+// │   └── feature_usecase.dart
+// └── presentation/
+    └── bloc/
+        ├── feature_bloc.dart
+        ├── feature_event.dart
+        └── feature_state.dart
+```
+
+## Implementation Guidelines
+
+### 1. Models and Entities
+
+```dart
+// data/models/user_model.dart
+class UserModel {
+  final String id;
+  final String name;
+  
+  const UserModel({
+    required this.id,
+    required this.name,
+  });
+  
+  factory UserModel.fromJson(Map<String, dynamic> json) => UserModel(
+    id: json['id'] as String,
+    name: json['name'] as String,
+  );
+}
+
+// domain/entities/user.dart
+class User {
+  final String id;
+  final String name;
+  
+  const User({
+    required this.id,
+    required this.name,
+  });
+}
+```
+
+### 2. Repository Pattern
+
+```dart
+// domain/repositories/i_feature_repository.dart
+abstract class IFeatureRepository {
+  Future<User> getUser(String id);
+}
+
+// data/repositories/feature_repository.dart
+class FeatureRepository implements IFeatureRepository {
+  final FeatureRemoteDataSource _remoteDataSource;
+  
+  FeatureRepository(this._remoteDataSource);
+  
+  @override
+  Future<User> getUser(String id) async {
+    final userModel = await _remoteDataSource.getUser(id);
+    return userModel.toEntity();
+  }
+}
+```
+
+### 3. Use Cases
+
+```dart
+// domain/usecases/get_user_usecase.dart
+class GetUserUseCase {
+  final IFeatureRepository repository;
+  
+  GetUserUseCase(this.repository);
+  
+  Future<User> call(String id) async {
+    return await repository.getUser(id);
+  }
+}
+```
+
+## Best Practices
+
+### 1. File Naming
+- Use snake_case for file names
+- Append file type to name (e.g., `login_page.dart`, `user_model.dart`)
+- Keep names descriptive and concise
+
+### 2. Code Organization
+- One widget per file
+- Group related small widgets in a single file if they're only used together
+- Keep build methods clean and extract complex widgets
+
+### 3. Dependency Injection
+```dart
+// DONT:
+class MyWidget extends StatelessWidget {
+  final repository = Repository();  // Direct instantiation
+  
+  @override
+  Widget build(BuildContext context) {
+    // ...
+  }
+}
+
+// DO:
+class MyWidget extends StatelessWidget {
+  final Repository repository;
+  
+  const MyWidget({required this.repository});
+  
+  @override
+  Widget build(BuildContext context) {
+    // ...
+  }
+}
+```
+
+### 4. Route Management
+```dart
+// lib/core/routes/app_router.dart
+class AppRouter {
+  static Route<dynamic> generateRoute(RouteSettings settings) {
+    switch (settings.name) {
+      case '/':
+        return MaterialPageRoute(builder: (_) => HomePage());
+      case '/login':
+        return MaterialPageRoute(builder: (_) => LoginPage());
+      default:
+        return MaterialPageRoute(builder: (_) => NotFoundPage());
+    }
+  }
+}
+```
+
+## Testing Structure
+
+```
+test/
+├── features/
+│   └── auth/
+│       ├── data/
+│       │   └── repositories/
+│       │       └── auth_repository_test.dart
+│       ├── domain/
+│       │   └── usecases/
+│       │       └── login_usecase_test.dart
+│       └── presentation/
+│           ├── bloc/
+│           │   └── auth_bloc_test.dart
+│           └── pages/
+│               └── login_page_test.dart
+└── widget_test.dart
+```
+
+## Anti-patterns to Avoid
+
+1. **Mixing Responsibilities**
+   - Don't put business logic in widgets
+   - Don't mix data layer code with UI
+   - Don't handle network calls directly in BLoC/Cubit
+
+2. **Poor State Management**
+   - Don't use setState() for complex state
+   - Don't pass state through deep widget trees
+   - Don't manage global state locally
+
+3. **Code Organization**
+   - Don't create massive widget files
+   - Don't skip proper error handling
+   - Don't ignore proper dependency injection
+
+## Using These Guidelines with Cursor AI
+
+When working with Cursor AI for Flutter development:
+
+1. Always specify the target directory for new code
+2. Request proper separation of concerns
+3. Ensure state management follows patterns
+4. Maintain consistent file structure
+5. Follow proper naming conventions
+
+Example prompt:
+```
+"Create a new feature for user profile management following clean architecture. 
+Include:
+- Domain layer (entities, repository interface, usecases)
+- Data layer (models, repository implementation)
+- Presentation layer (bloc, pages, widgets)
+Place files in the appropriate directories under lib/features/profile/"
+```
+
+## Decision Flow Examples
+
+### Example 1: Adding User Authentication
+
+1. **Feature Context**
+   - Part of authentication flow
+   - Affects global app state
+   - Interacts with secure storage and API
+   - Needed by multiple features
+
+2. **Code Generation Order**
+   ```
+   1. Domain Layer
+      - user_entity.dart
+      - auth_repository_interface.dart
+      - auth_usecases.dart
+   
+   2. Data Layer
+      - user_model.dart
+      - auth_repository_impl.dart
+      - auth_api_service.dart
+   
+   3. Presentation Layer
+      - auth_bloc.dart
+      - login_page.dart
+      - register_page.dart
+   ```
+
+### Example 2: Adding Product List Feature
+
+1. **Feature Context**
+   - Part of shopping flow
+   - Needs local state management
+   - Requires pagination
+   - Has offline capabilities
+
+2. **Code Generation Order**
+   ```
+   1. Domain Layer
+      - product_entity.dart
+      - product_repository_interface.dart
+      - get_products_usecase.dart
+   
+   2. Data Layer
+      - product_model.dart
+      - product_repository_impl.dart
+      - product_local_datasource.dart
+      - product_remote_datasource.dart
+   
+   3. Presentation Layer
+      - products_bloc.dart
+      - products_page.dart
+      - product_card_widget.dart
+   ```
+
+## Code Generation Principles
+
+1. **Start with Interfaces**
+   ```dart
+   // FIRST: Define the contract
+   abstract class IProductRepository {
+     Future<List<Product>> getProducts();
+   }
+   
+   // THEN: Implement the contract
+   class ProductRepository implements IProductRepository {
+     @override
+     Future<List<Product>> getProducts() async {
+       // Implementation
+     }
+   }
+   ```
+
+2. **Layer-by-Layer Generation**
+   ```dart
+   // 1. Domain Entity
+   class Product {
+     final String id;
+     final String name;
+     // ...
+   }
+   
+   // 2. Data Model
+   class ProductModel extends Product {
+     // ...
+     factory ProductModel.fromJson(Map<String, dynamic> json) {
+       // ...
+     }
+   }
+   
+   // 3. Repository
+   class ProductRepository implements IProductRepository {
+     // ...
+   }
+   
+   // 4. UseCase
+   class GetProductsUseCase {
+     // ...
+   }
+   
+   // 5. Bloc
+   class ProductsBloc extends Bloc<ProductsEvent, ProductsState> {
+     // ...
+   }
+   
+   // 6. UI
+   class ProductsPage extends StatelessWidget {
+     // ...
+   }
+   ```
+
+3. **Test-Driven Generation**
+   ```dart
+   // 1. First generate the test
+   void main() {
+     group('ProductRepository', () {
+       test('should return list of products', () async {
+         // ...
+       });
+     });
+   }
+   
+   // 2. Then generate the implementation
+   class ProductRepository implements IProductRepository {
+     // ...
+   }
+   ```
+
+Remember: The goal is to maintain a scalable, maintainable, and testable Flutter application that follows clean architecture principles and best practices. Always think through the entire feature lifecycle before generating any code, and generate code in the order of dependencies (inner layers first, outer layers last).
